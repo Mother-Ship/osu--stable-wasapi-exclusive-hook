@@ -1,0 +1,39 @@
+# Visual Studio / IDE state
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.db-*
+*.opendb
+ipch/
+*.ipch
+
+# MSBuild / compiler outputs
+[Dd]ebug/
+[Rr]elease/
+*.obj
+*.iobj
+*.idb
+*.ilk
+*.ipdb
+*.pdb
+*.tlog
+*.lastbuildstate
+*.recipe
+*.exp
+*.lib
+*.dll
+*.exe
+*.log
+*.tmp
+
+# Project-specific generated folders
+logs/
+runtime/*
+!runtime/*.dll
+!runtime/README.md
+
+# Packaged artifacts
+*.zip

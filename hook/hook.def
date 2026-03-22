@@ -1,0 +1,4 @@
+LIBRARY "osu_audio_hook"
+
+EXPORTS
+    InitializeHookBridge=_InitializeHookBridge@4
