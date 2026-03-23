@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "../common/fs_utils.h"
 #include "../common/logging.h"
@@ -78,6 +79,61 @@ const char* DescribeInitExitCode(DWORD exit_code)
 std::wstring Quote(const std::wstring& value)
 {
     return L"\"" + value + L"\"";
+}
+
+std::wstring QuoteCommandLineArg(const std::wstring& value)
+{
+    if (value.empty())
+        return L"\"\"";
+
+    bool needs_quotes = false;
+    for (wchar_t ch : value)
+    {
+        if (ch == L' ' || ch == L'\t' || ch == L'\n' || ch == L'\"')
+        {
+            needs_quotes = true;
+            break;
+        }
+    }
+
+    if (!needs_quotes)
+        return value;
+
+    std::wstring result;
+    result.reserve(value.size() + 2);
+    result.push_back(L'"');
+
+    std::size_t backslash_count = 0;
+    for (wchar_t ch : value)
+    {
+        if (ch == L'\\')
+        {
+            ++backslash_count;
+            continue;
+        }
+
+        if (ch == L'"')
+        {
+            result.append(backslash_count * 2 + 1, L'\\');
+            result.push_back(L'"');
+            backslash_count = 0;
+            continue;
+        }
+
+        if (backslash_count > 0)
+        {
+            result.append(backslash_count, L'\\');
+            backslash_count = 0;
+        }
+
+        result.push_back(ch);
+    }
+
+    if (backslash_count > 0)
+        result.append(backslash_count * 2, L'\\');
+
+    result.push_back(L'"');
+    return result;
 }
 
 bool IsX86PortableExecutable(const std::wstring& path)
@@ -277,7 +333,7 @@ bool RemoteCall(HANDLE process, LPTHREAD_START_ROUTINE routine, void* parameter,
     return ok;
 }
 
-bool ParseArguments(int argc, wchar_t** argv, std::wstring& game_path)
+bool ParseArguments(int argc, wchar_t** argv, std::wstring& game_path, std::vector<std::wstring>& game_args)
 {
     for (int i = 1; i < argc; ++i)
     {
@@ -288,8 +344,17 @@ bool ParseArguments(int argc, wchar_t** argv, std::wstring& game_path)
             continue;
         }
 
+        if (current == L"--")
+        {
+            for (int j = i + 1; j < argc; ++j)
+                game_args.emplace_back(argv[j]);
+            break;
+        }
+
         if (current == L"-h" || current == L"--help")
             return false;
+
+        game_args.emplace_back(current);
     }
 
     return !game_path.empty();
@@ -297,7 +362,7 @@ bool ParseArguments(int argc, wchar_t** argv, std::wstring& game_path)
 
 void PrintUsage()
 {
-    std::fwprintf(stderr, L"\u7528\u6cd5: launcher.exe --game <osu!.exe \u8def\u5f84>\n");
+    std::fwprintf(stderr, L"\u7528\u6cd5: launcher.exe --game <osu!.exe \u8def\u5f84> [args...]\n");
 }
 } // namespace
 
@@ -309,7 +374,8 @@ int wmain(int argc, wchar_t** argv)
     g_log_path = JoinPath(JoinPath(root_dir, L"logs"), L"launcher.log");
 
     std::wstring game_path;
-    if (!ParseArguments(argc, argv, game_path))
+    std::vector<std::wstring> game_args;
+    if (!ParseArguments(argc, argv, game_path, game_args))
     {
         PrintUsage();
         Log(u8"\u547d\u4ee4\u884c\u53c2\u6570\u65e0\u6548");
@@ -342,7 +408,12 @@ int wmain(int argc, wchar_t** argv)
     startup_info.cb = sizeof(startup_info);
     PROCESS_INFORMATION process_info = {};
 
-    std::wstring command_line = Quote(game_path);
+    std::wstring command_line = QuoteCommandLineArg(game_path);
+    for (const auto& arg : game_args)
+    {
+        command_line.push_back(L' ');
+        command_line += QuoteCommandLineArg(arg);
+    }
     const std::wstring working_directory = ParentDirectory(game_path);
     if (!::CreateProcessW(game_path.c_str(), command_line.data(), nullptr, nullptr, FALSE,
                           CREATE_SUSPENDED, nullptr, working_directory.c_str(), &startup_info, &process_info))
