@@ -41,7 +41,7 @@ runtime\launcher.exe --game "C:\path\to\osu!.exe"
 ## 备注
 
 - Hook 需要目标游戏使用的 `bass.dll` 版本为 `2.4.15.2`。打破这个假设，钩子就会失效。
-- 启动后需要在游戏内拉-25ms的全局Offset。为什么是这个值我也不知道，我从McOsu的WASAPI独占抄的，据[他们]([#ifdef MCENGINE_FEATURE_BASS_WASAPI](https://github.com/McKay42/McOsu/blob/master/src/App/Osu/Osu.cpp#L241))说是因为WASAPI独占会使用新版本的bass相关dll，行为和旧版不一样
+- 启动后需要在游戏内拉-25ms的全局Offset。为什么是这个值我也不知道，我从McOsu的WASAPI独占抄的，据[他们](https://github.com/McKay42/McOsu/blob/master/src/App/Osu/Osu.cpp#L241)说是因为WASAPI独占会使用新版本的bass相关dll，行为和旧版不一样
 - 设备选择仍然由游戏自身的 BASS 设备列表驱动。
 - 当前初始化过程中如果独占模式失败，会被视为硬失败；紧随其后的“回退到默认
   设备再重试”会被阻止。
